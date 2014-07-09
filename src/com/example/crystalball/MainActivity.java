@@ -1,6 +1,8 @@
 package com.example.crystalball;
 
 import android.graphics.drawable.AnimationDrawable;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.os.Bundle;
@@ -12,6 +14,9 @@ import android.view.animation.AlphaAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.example.crystalball.ShakeDetector.OnShakeListener;
 
 public class MainActivity extends ActionBarActivity {
 	
@@ -19,6 +24,9 @@ public class MainActivity extends ActionBarActivity {
 	private TextView mAnswerLabel;
 	private Button mGetAnswerButton;
 	private ImageView mCrystalBallImage;
+	private SensorManager mSensorManager;
+	private Sensor mAccelerometer;
+	private ShakeDetector mShakeDetector;
     
 	@Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,22 +38,41 @@ public class MainActivity extends ActionBarActivity {
         mGetAnswerButton = (Button) findViewById(R.id.button1);
         mCrystalBallImage = (ImageView) findViewById(R.id.imageView1);
         
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mShakeDetector = new ShakeDetector(new OnShakeListener() {
+			
+			@Override
+			public void onShake() {
+				handleNewAnswer();
+			}
+		});
+        
         mGetAnswerButton.setOnClickListener(new View.OnClickListener() {
 			
 			@Override
 			public void onClick(View v) {
-				String answer = mCrystalBall.getAnAnswer();
-				
-				//Update the label with our dynamic answer
-				mAnswerLabel.setText(answer);
-				
-				animateCrystalBall();
-				animateAnswer();
-				playSound();
+				handleNewAnswer();
 			}
+
 		});
+        
+        String toastMessage = "Yooooooooo doggg!";
+        Toast welcomeToast = Toast.makeText(this, toastMessage, Toast.LENGTH_LONG);
     }
-    
+	
+	@Override
+	public void onResume() {
+		super.onResume();
+        mSensorManager.registerListener(mShakeDetector, mAccelerometer, SensorManager.SENSOR_DELAY_UI);
+	}
+	
+	@Override
+	public void onPause() {
+		super.onPause();
+		mSensorManager.unregisterListener(mShakeDetector);
+	}
+	
     private void animateCrystalBall() {
     	mCrystalBallImage.setImageResource(R.drawable.ball_animation);
     	AnimationDrawable ballAnimation = (AnimationDrawable) mCrystalBallImage.getDrawable();
@@ -74,7 +101,17 @@ public class MainActivity extends ActionBarActivity {
 			}
 		});
     }
-
+    
+	private void handleNewAnswer() {
+		String answer = mCrystalBall.getAnAnswer();
+		
+		//Update the label with our dynamic answer
+		mAnswerLabel.setText(answer);
+		
+		animateCrystalBall();
+		animateAnswer();
+		playSound();
+	}
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
